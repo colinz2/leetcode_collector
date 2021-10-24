@@ -1,15 +1,16 @@
-package aid
+package collector
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gocolly/colly"
+	"github.com/realzhangm/leetcode_aid/collector/leetcode_cli"
 	"log"
 	"net/http"
 )
 
-func Scraping(conf *ClientConf) {
+func Scraping(conf *leetcode_cli.ClientConf) {
 	c := colly.NewCollector()
 
 	c.OnError(func(response *colly.Response, err error) {
@@ -17,7 +18,7 @@ func Scraping(conf *ClientConf) {
 		fmt.Println(string(response.Body))
 	})
 
-	logInParam := logInParam{
+	logInParam := leetcode_cli.LogInParam{
 		Login:    conf.UserName,
 		Password: conf.PassWord,
 	}
@@ -27,7 +28,7 @@ func Scraping(conf *ClientConf) {
 	}
 
 	// authenticate
-	loginUrl := Url + LoginPath
+	loginUrl := leetcode_cli.Url + leetcode_cli.LoginPath
 	header := http.Header{}
 	header.Set("Referer", loginUrl)
 	err = c.Request(http.MethodPost, loginUrl, bytes.NewReader(reqBody), nil, header)
@@ -41,5 +42,5 @@ func Scraping(conf *ClientConf) {
 	})
 
 	// start scraping
-	c.Visit(Url + SubmissionsPath)
+	c.Visit(leetcode_cli.Url + leetcode_cli.SubmissionsPath)
 }
