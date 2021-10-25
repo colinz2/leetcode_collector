@@ -1,0 +1,183 @@
+package model
+
+import (
+	"fmt"
+	"github.com/realzhangm/leetcode_aid/collector/bufferpool"
+	"github.com/realzhangm/leetcode_aid/collector/leetcode_cli"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"text/template"
+	"time"
+)
+
+const markdownTemplate = `
+<p align="center"><img width="300" src="https://raw.githubusercontent.com/KivenCkl/LeetCode_Helper/master/imgs/leetcode-logo.png"></p>
+<p align="center">
+    <img src="https://img.shields.io/badge/用户-{{.InfoNode.UserName}}-blue.svg?" alt="">
+    <img src="https://img.shields.io/badge/已解决-{{.InfoNode.NumSolved}}/{{.InfoNode.NumTotal}}-blue.svg?" alt="">
+    <img src="https://img.shields.io/badge/简单-{{.InfoNode.AcEasy}}-green.svg?" alt="">
+    <img src="https://img.shields.io/badge/中等-{{.InfoNode.AcMedium}}-orange.svg?" alt="">
+    <img src="https://img.shields.io/badge/困难-{{.InfoNode.AcHard}}-red.svg?" alt="">
+</p>
+<h1 align="center">LeetCode 的解答</h1>
+
+<p align="center">
+    <br>
+    <b>最近一次更新: {{Time}} </b>
+    <br>
+</p>
+<!--请保留下面这行信息，让更多用户了解到这个小爬虫，衷心感谢您的支持-->
+<p align="center">The source code is fetched using the tool <a href="https://github.com/realzhangm/leetcode_collector">leetcode_collector</a>.</p>
+
+| # | 题名 | 解答 | 通过率 | 难度 | 标签 |
+|:--:|:-----|:---------:|:----:|:----:|:----:|
+{{Summary}}
+`
+const TableLine1 = `|{frontend_id}|{title}{paid_only}{is_favor}|{solutions}|{ac_rate}|{difficulty}|{tags}|`
+
+type TableLineFormat struct {
+	slug string
+	ps   *leetcode_cli.ProblemStatus
+	q    *leetcode_cli.Question
+}
+
+func (t TableLineFormat) frontendId() string {
+	return t.ps.Stat.FrontendQuestionID
+}
+
+func (t TableLineFormat) acRate() string {
+	r := float64(t.ps.Stat.TotalAcs) * 100 / float64(t.ps.Stat.TotalSubmitted)
+	return strconv.FormatFloat(r, 'f', 1, 64) + "%"
+}
+
+func (t TableLineFormat) solutions() string {
+	return fmt.Sprintf("[🔗](solutions/%s/README.md)", t.slug)
+}
+
+func (t TableLineFormat) title() string {
+	return fmt.Sprintf("[%s](%s%s)",
+		t.ps.Stat.QuestionTitle, leetcode_cli.UrlProblems, t.ps.Stat.QuestionTitleSlug)
+}
+
+func (t TableLineFormat) paidOnly() string {
+	if t.ps.PaidOnly {
+		return " 🔒"
+	}
+	return ""
+}
+
+func (t TableLineFormat) isFavor() string {
+	if t.ps.IsFavor {
+		return " ♥"
+	}
+	return ""
+}
+
+func (t TableLineFormat) difficulty() string {
+	switch t.ps.Difficulty.Level {
+	case 1:
+		return "简单"
+	case 2:
+		return "中等"
+	case 3:
+		return "困难"
+	}
+	return "未知"
+}
+func (t TableLineFormat) tags() string {
+	res := ""
+	for _, tag := range t.q.TopicTags {
+		res += fmt.Sprintf("[%s](%s%s)",
+			tag.TranslatedName, leetcode_cli.UrlTag, tag.Slug) + "<br>"
+	}
+	return res
+}
+
+func (t *TableLineFormat) templateExe() string {
+	tmpl, err := template.New("table_line").Delims("{", "}").Funcs(template.FuncMap{
+		"frontend_id": (*t).frontendId,
+		"title":       (*t).title,
+		"paid_only":   (*t).paidOnly,
+		"is_favor":    (*t).isFavor,
+		"solutions":   (*t).solutions,
+		"ac_rate":     (*t).acRate,
+		"difficulty":  (*t).difficulty,
+		"tags":        (*t).tags,
+	}).Parse(TableLine1)
+	if err != nil {
+		panic(err)
+	}
+
+	buffer := bufferpool.GetBuffer()
+	defer bufferpool.PutBuffer(buffer)
+	err = tmpl.Execute(buffer, t)
+	if err != nil {
+		panic(err)
+	}
+	buffer.WriteString("\n")
+	return buffer.String()
+}
+
+type ProblemStatusSlice []leetcode_cli.ProblemStatus
+
+func (s ProblemStatusSlice) Len() int      { return len(s) }
+func (s ProblemStatusSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s ProblemStatusSlice) Less(i, j int) bool {
+	// 按照问题序号排序，由高到低
+	return s[i].Stat.QuestionID < s[j].Stat.QuestionID
+}
+
+func (p *PersonInfoNode) summaryTable() string {
+	bd := strings.Builder{}
+	pSlice := ProblemStatusSlice{}
+	for slug, ps := range p.AcProblems {
+		if slug != ps.Stat.QuestionTitleSlug {
+			panic("slug not equal")
+		}
+		pSlice = append(pSlice, ps)
+	}
+	sort.Sort(pSlice)
+
+	for _, ps := range pSlice {
+		slug := ps.Stat.QuestionTitleSlug
+		pd, e := p.AcProblemsDetail[slug]
+		if !e {
+			panic("not exist ?")
+		}
+		tlf := TableLineFormat{
+			slug: slug,
+			ps:   &ps,
+			q:    &pd,
+		}
+		bd.WriteString(tlf.templateExe())
+	}
+	return bd.String()
+}
+
+func updateTime() string {
+	return time.Now().Format("2006年1月2日 15:04:05")
+}
+
+func (p *PersonInfoNode) Json2Md(outputDir string) error {
+	tmpl, err := template.New("all").Funcs(template.FuncMap{
+		"Time":    updateTime,
+		"Summary": (*p).summaryTable,
+	}).Parse(markdownTemplate)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.OpenFile(outputDir, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	err = tmpl.Execute(f, p)
+	if err != nil {
+		panic(err)
+	}
+	return nil
+}

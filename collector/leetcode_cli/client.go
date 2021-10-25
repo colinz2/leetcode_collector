@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -21,6 +22,8 @@ import (
 
 const (
 	Url                 = "https://leetcode-cn.com"
+	UrlTag              = Url + "/tag/"
+	UrlProblems         = Url + "/problems/"
 	LoginPath           = "/accounts/login"
 	SubmissionsPath     = "/api/submissions"
 	GraphqlPath         = "/graphql"
@@ -36,25 +39,13 @@ var (
 	ErrorClientLogin          = errors.Wrap(ErrorClient, "login")
 	ErrorClientGraphQl        = errors.Wrap(ErrorClient, "graphql")
 	ErrorClientGetAllProblems = errors.Wrap(ErrorClient, "get all problems")
+	ErrorSubmissionDetail     = errors.Wrap(ErrorClient, "query submission detail")
 )
 
 func setHeader(header *http.Header) {
 	header.Set("User-Agent", UAStr)
 	header.Set("Origin", Url)
 	header.Set("Cache-Control", "no-cache")
-}
-
-type Client struct {
-	conf      ClientConf
-	httpCli   *http.Client
-	cookieJar *Jar
-	loginFlag bool
-}
-
-type ClientConf struct {
-	UserName  string
-	PassWord  string
-	OutputDir string
 }
 
 // Jar https://stackoverflow.com/questions/12756782/go-http-post-and-use-cookies
@@ -70,12 +61,23 @@ func NewJar() *Jar {
 }
 
 func (jar *Jar) Clone() *Jar {
+	jar.lk.Lock()
+	defer jar.lk.Unlock()
+
 	j2 := NewJar()
 	// map copy is pointer
 	for k, v := range jar.cookies {
 		j2.cookies[k] = v
 	}
 	return j2
+}
+
+func (jar *Jar) Print() {
+	jar.lk.Lock()
+	defer jar.lk.Unlock()
+	for k, v := range jar.cookies {
+		fmt.Println(k, v)
+	}
 }
 
 func (jar *Jar) SetCookies(u *url.URL, cookies []*http.Cookie) {
@@ -86,6 +88,42 @@ func (jar *Jar) SetCookies(u *url.URL, cookies []*http.Cookie) {
 
 func (jar *Jar) Cookies(u *url.URL) []*http.Cookie {
 	return jar.cookies[u.Host]
+}
+
+type Client struct {
+	conf        ClientConf
+	httpCli     *http.Client
+	cookieJar   *Jar
+	loginFlag   bool
+	httpCliPool *sync.Pool
+}
+
+type ClientConf struct {
+	UserName  string
+	PassWord  string
+	OutputDir string
+}
+
+func newGraphQlHttpClient() *http.Client {
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 10 * time.Second,
+			}).DialContext,
+			TLSHandshakeTimeout: 10 * time.Second,
+
+			ExpectContinueTimeout: 4 * time.Second,
+			ResponseHeaderTimeout: 3 * time.Second,
+			MaxIdleConns:          2,
+			MaxConnsPerHost:       2,
+			MaxIdleConnsPerHost:   2,
+			IdleConnTimeout:       30,
+		},
+		// Prevent endless redirects
+		Timeout: 1 * time.Minute,
+	}
+	return httpClient
 }
 
 func NewClient(conf *ClientConf) *Client {
@@ -99,6 +137,10 @@ func NewClient(conf *ClientConf) *Client {
 
 			ExpectContinueTimeout: 4 * time.Second,
 			ResponseHeaderTimeout: 3 * time.Second,
+			MaxIdleConns:          10,
+			MaxConnsPerHost:       5,
+			MaxIdleConnsPerHost:   5,
+			IdleConnTimeout:       10,
 		},
 		// Prevent endless redirects
 		Timeout: 1 * time.Minute,
@@ -108,14 +150,35 @@ func NewClient(conf *ClientConf) *Client {
 		conf:      *conf,
 		httpCli:   httpClient,
 		cookieJar: NewJar(),
+		httpCliPool: &sync.Pool{
+			New: func() interface{} {
+				return newGraphQlHttpClient()
+			},
+		},
 	}
 
 	if len(client.conf.OutputDir) == 0 {
 		client.conf.OutputDir = "./output"
 		util.Mkdir(client.conf.OutputDir)
 	}
-
 	return client
+}
+
+func (c *Client) getHttpClintFromPool() *http.Client {
+	return c.httpCliPool.Get().(*http.Client)
+}
+
+func (c *Client) putHttpClintToPool(httpCli *http.Client) {
+	httpCli.CloseIdleConnections()
+	c.httpCliPool.Put(httpCli)
+}
+
+func (c *Client) isLogin() bool {
+	return c.loginFlag
+}
+
+func (c *Client) setLoginFlag() {
+	c.loginFlag = true
 }
 
 type LogInParam struct {
@@ -128,14 +191,6 @@ func (l LogInParam) postFormBuffer() *bytes.Buffer {
 	postFormValues.Add("login", l.Login)
 	postFormValues.Add("password", l.Password)
 	return bytes.NewBufferString(postFormValues.Encode())
-}
-
-func (c *Client) isLogin() bool {
-	return c.loginFlag
-}
-
-func (c *Client) setLoginFlag() {
-	c.loginFlag = true
 }
 
 func (c *Client) Login(ctx context.Context) error {
@@ -180,6 +235,10 @@ func (c *Client) problemAllURL() string {
 
 // GetAllProblems Get All the problems
 func (c *Client) GetAllProblems() (error, *AllProblemsResponse) {
+	if !c.isLogin() {
+		return errors.Wrap(ErrorClientGetAllProblems, "not login"), nil
+	}
+
 	req, err := http.NewRequest(http.MethodGet, c.problemAllURL(), nil)
 	if err != nil {
 		return errors.Wrap(ErrorClientGetAllProblems, err.Error()), nil
@@ -228,13 +287,16 @@ func (c *Client) GetAllProblems() (error, *AllProblemsResponse) {
 
 // QueryQuestionDetail get every question detail
 func (c *Client) QueryQuestionDetail(questionSlug string) (error, *QuestionDetailResponse) {
+	if !c.isLogin() {
+		return errors.Wrap(ErrorClientGetAllProblems, "not login"), nil
+	}
 	// don't need to change http client ?
-	c.httpCli.Jar = c.cookieJar.Clone()
-	defer func() {
-		c.httpCli.Jar = c.cookieJar
-	}()
+	// must change to support multi route
+	httpCli := c.getHttpClintFromPool()
+	defer c.putHttpClintToPool(httpCli)
+	httpCli.Jar = c.cookieJar.Clone()
 
-	graphqlCli := graphql.NewClient(c.graphqlURl(), graphql.WithHTTPClient(c.httpCli))
+	graphqlCli := graphql.NewClient(c.graphqlURl(), graphql.WithHTTPClient(httpCli))
 	req := graphql.NewRequest(QueryQuestion)
 	req.Var("titleSlug", questionSlug)
 
@@ -263,11 +325,22 @@ func (c *Client) QueryQuestionDetail(questionSlug string) (error, *QuestionDetai
 
 // QuerySubmissionsByQuestion get all the submission for each question
 func (c *Client) QuerySubmissionsByQuestion(questionSlug string) (error, *SubmissionsByQuestionResponse) {
-	c.httpCli.Jar = c.cookieJar.Clone()
-	defer func() {
-		c.httpCli.Jar = c.cookieJar
-	}()
-	graphqlCli := graphql.NewClient(c.graphqlURl(), graphql.WithHTTPClient(c.httpCli))
+	if len(questionSlug) == 0 {
+		return errors.Wrap(ErrorClientGraphQl, "questionSlug is zero length"), nil
+	}
+
+	if !c.isLogin() {
+		return errors.Wrap(ErrorClientGraphQl, "not login"), nil
+	}
+
+	httpCli := c.getHttpClintFromPool()
+	defer c.putHttpClintToPool(httpCli)
+	httpCli.Jar = c.cookieJar.Clone()
+
+	graphqlCli := graphql.NewClient(c.graphqlURl(), graphql.WithHTTPClient(httpCli))
+	graphqlCli.Log = func(s string) {
+		//log.Println(s)
+	}
 
 	req := graphql.NewRequest(QuerySubmissionByQuestionSlug)
 	req.Var("questionSlug", questionSlug)
@@ -298,22 +371,30 @@ func (c *Client) QuerySubmissionsByQuestion(questionSlug string) (error, *Submis
 
 // QuerySubmissionDetail get very submssion detail
 func (c *Client) QuerySubmissionDetail(id int64) (error, *SubmissionDetailResponse) {
+	if !c.isLogin() {
+		return errors.Wrap(ErrorSubmissionDetail, "not login"), nil
+	}
+
 	// don't need to change http client ?
-	c.httpCli.Jar = c.cookieJar.Clone()
-	defer func() {
-		c.httpCli.Jar = c.cookieJar
-	}()
-	graphqlCli := graphql.NewClient(c.graphqlURl(), graphql.WithHTTPClient(c.httpCli))
+	httpCli := c.getHttpClintFromPool()
+	defer c.putHttpClintToPool(httpCli)
+	httpCli.Jar = c.cookieJar.Clone()
+
+	graphqlCli := graphql.NewClient(c.graphqlURl(), graphql.WithHTTPClient(httpCli))
+	graphqlCli.Log = func(s string) {
+		log.Println(s)
+	}
 
 	req := graphql.NewRequest(QuerySubmissionDetail)
 	req.Var("id", id)
 	setHeader(&req.Header)
 
+	//(httpCli.Jar.(*Jar)).Print()
+
 	var responseData map[string]interface{}
 	err := graphqlCli.Run(context.TODO(), req, &responseData)
 	if err != nil {
-		msg := fmt.Sprintf("QuerySubmissionDetail:%s", err.Error())
-		return errors.Wrap(ErrorClientGraphQl, msg), nil
+		return errors.Wrap(ErrorSubmissionDetail, err.Error()), nil
 	}
 
 	r := &SubmissionDetailResponse{}
@@ -322,12 +403,16 @@ func (c *Client) QuerySubmissionDetail(id int64) (error, *SubmissionDetailRespon
 	enc := json.NewEncoder(buff)
 	err = enc.Encode(responseData)
 	if err != nil {
-		return errors.Wrap(ErrorClientGraphQl, err.Error()), nil
+		return errors.Wrap(ErrorSubmissionDetail, err.Error()), nil
 	}
 	dec := json.NewDecoder(buff)
 	err = dec.Decode(r)
 	if err != nil {
-		return errors.Wrap(ErrorClientGraphQl, err.Error()), nil
+		return errors.Wrap(ErrorSubmissionDetail, err.Error()), nil
+	}
+
+	if r.SubmissionDetail == nil {
+		return errors.Wrap(ErrorSubmissionDetail, "body SubmissionDetail is null"), nil
 	}
 	return nil, r
 }

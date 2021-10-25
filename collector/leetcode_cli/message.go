@@ -26,6 +26,10 @@ type ProblemStatus struct {
 	Progress  float64 `json:"progress"`
 }
 
+func (p ProblemStatus) IsAc() bool {
+	return p.Status == "ac"
+}
+
 type AllProblemsResponse struct {
 	UserName        string          `json:"user_name"`
 	NumSolved       int             `json:"num_solved"`
@@ -39,71 +43,77 @@ type AllProblemsResponse struct {
 	CategorySlug    string          `json:"category_slug"`
 }
 
+type Question struct {
+	Content          string   `json:"content"`
+	Hints            []string `json:"hints"`
+	QuestionID       string   `json:"questionId"`
+	SimilarQuestions string   `json:"similarQuestions"`
+	TopicTags        []struct {
+		Name           string `json:"name"`
+		Slug           string `json:"slug"`
+		TranslatedName string `json:"translatedName"`
+	} `json:"topicTags"`
+	TranslatedContent string `json:"translatedContent"`
+	TranslatedTitle   string `json:"translatedTitle"`
+}
+
 type QuestionDetailResponse struct {
-	Question struct {
-		Content          string   `json:"content"`
-		Hints            []string `json:"hints"`
-		QuestionID       string   `json:"questionId"`
-		SimilarQuestions string   `json:"similarQuestions"`
-		TopicTags        []struct {
-			Name           string `json:"name"`
-			Slug           string `json:"slug"`
-			TranslatedName string `json:"translatedName"`
-		} `json:"topicTags"`
-		TranslatedContent string `json:"translatedContent"`
-		TranslatedTitle   string `json:"translatedTitle"`
-	} `json:"question"`
+	Question Question `json:"question"`
+}
+
+type Submission struct {
+	Typename      string `json:"__typename"`
+	ID            string `json:"id"`
+	IsPending     string `json:"isPending"`
+	Lang          string `json:"lang"`
+	Memory        string `json:"memory"`
+	Runtime       string `json:"runtime"`
+	StatusDisplay string `json:"statusDisplay"`
+	Timestamp     string `json:"timestamp"`
+	URL           string `json:"url"`
 }
 
 type SubmissionsByQuestionResponse struct {
 	SubmissionList struct {
-		Typename    string `json:"__typename"`
-		HasNext     bool   `json:"hasNext"`
-		LastKey     string `json:"lastKey"`
-		Submissions []struct {
-			Typename      string `json:"__typename"`
-			ID            string `json:"id"`
-			IsPending     string `json:"isPending"`
-			Lang          string `json:"lang"`
-			Memory        string `json:"memory"`
-			Runtime       string `json:"runtime"`
-			StatusDisplay string `json:"statusDisplay"`
-			Timestamp     string `json:"timestamp"`
-			URL           string `json:"url"`
-		} `json:"submissions"`
+		Typename    string       `json:"__typename"`
+		HasNext     bool         `json:"hasNext"`
+		LastKey     string       `json:"lastKey"`
+		Submissions []Submission `json:"submissions"`
 	} `json:"submissionList"`
 }
 
+type SubmissionDetail struct {
+	Typename     string `json:"__typename"`
+	Code         string `json:"code"`
+	ID           string `json:"id"`
+	Lang         string `json:"lang"`
+	Memory       string `json:"memory"`
+	OutputDetail struct {
+		Typename       string `json:"__typename"`
+		CodeOutput     string `json:"codeOutput"`
+		CompileError   string `json:"compileError"`
+		ExpectedOutput string `json:"expectedOutput"`
+		Input          string `json:"input"`
+		LastTestcase   string `json:"lastTestcase"`
+		RuntimeError   string `json:"runtimeError"`
+	} `json:"outputDetail"`
+	PassedTestCaseCnt int `json:"passedTestCaseCnt"`
+	Question          struct {
+		Typename        string `json:"__typename"`
+		QuestionID      string `json:"questionId"`
+		Title           string `json:"title"`
+		TitleSlug       string `json:"titleSlug"`
+		TranslatedTitle string `json:"translatedTitle"`
+	} `json:"question"`
+	RawMemory         string      `json:"rawMemory"`
+	Runtime           string      `json:"runtime"`
+	SourceURL         string      `json:"sourceUrl"`
+	StatusDisplay     string      `json:"statusDisplay"`
+	SubmissionComment interface{} `json:"submissionComment"`
+	Timestamp         int         `json:"timestamp"`
+	TotalTestCaseCnt  int         `json:"totalTestCaseCnt"`
+}
+
 type SubmissionDetailResponse struct {
-	SubmissionDetail struct {
-		Typename     string `json:"__typename"`
-		Code         string `json:"code"`
-		ID           string `json:"id"`
-		Lang         string `json:"lang"`
-		Memory       string `json:"memory"`
-		OutputDetail struct {
-			Typename       string `json:"__typename"`
-			CodeOutput     string `json:"codeOutput"`
-			CompileError   string `json:"compileError"`
-			ExpectedOutput string `json:"expectedOutput"`
-			Input          string `json:"input"`
-			LastTestcase   string `json:"lastTestcase"`
-			RuntimeError   string `json:"runtimeError"`
-		} `json:"outputDetail"`
-		PassedTestCaseCnt int `json:"passedTestCaseCnt"`
-		Question          struct {
-			Typename        string `json:"__typename"`
-			QuestionID      string `json:"questionId"`
-			Title           string `json:"title"`
-			TitleSlug       string `json:"titleSlug"`
-			TranslatedTitle string `json:"translatedTitle"`
-		} `json:"question"`
-		RawMemory         string      `json:"rawMemory"`
-		Runtime           string      `json:"runtime"`
-		SourceURL         string      `json:"sourceUrl"`
-		StatusDisplay     string      `json:"statusDisplay"`
-		SubmissionComment interface{} `json:"submissionComment"`
-		Timestamp         int         `json:"timestamp"`
-		TotalTestCaseCnt  int         `json:"totalTestCaseCnt"`
-	} `json:"submissionDetail"`
+	SubmissionDetail *SubmissionDetail `json:"submissionDetail"`
 }
