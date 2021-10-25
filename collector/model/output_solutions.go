@@ -72,11 +72,11 @@ func (s SolutionReadMeFormatter) contentCn() string {
 
 func (s SolutionReadMeFormatter) solutions() string {
 	sb := strings.Builder{}
-	for lang, s := range s.subLangMap {
-		sb.WriteString("### " + lang + "\n")
+	for lang, sbd := range s.subLangMap {
+		sb.WriteString(fmt.Sprintf("### %s [🔗](%s%s) \n", lang, s.slug, findExt(lang)))
 		sb.WriteString("```" + lang)
 		sb.WriteString("\n")
-		sb.WriteString(s.Code)
+		sb.WriteString(sbd.Code)
 		sb.WriteString("\n")
 		sb.WriteString("```")
 		sb.WriteString("\n")
@@ -106,7 +106,7 @@ func (s SolutionReadMeFormatter) similarQuestionsCn() string {
 	res := ""
 	for _, sq := range sqs {
 		if _, e := s.p.AcProblems[sq.TitleSlug]; e {
-			res += fmt.Sprintf("- [%s](solutions/%s/README.md)  [%s] \n",
+			res += fmt.Sprintf("- [%s](../%s/README.md)  [%s] \n",
 				sq.TranslatedTitle, sq.TitleSlug, sq.Difficulty)
 		}
 	}
@@ -160,6 +160,7 @@ func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *lee
 	buff.WriteString("\n")
 
 	buff.WriteString(subDetail.Code)
+	buff.WriteString("\n")
 	ioutil.WriteFile(dst, buff.Bytes(), os.ModePerm)
 }
 
