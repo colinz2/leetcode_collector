@@ -228,7 +228,11 @@ func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 	for i := range pSlice {
 		preSlug, nextSlug := "", ""
 		slug := pSlice[i].Stat.QuestionTitleSlug
-		if i > 0 && i < len(pSlice)-1 {
+		if i == 0 {
+			nextSlug = pSlice[i+1].Stat.QuestionTitleSlug
+		} else if i == len(pSlice)-1 {
+			preSlug = pSlice[i-1].Stat.QuestionTitleSlug
+		} else {
 			preSlug = pSlice[i-1].Stat.QuestionTitleSlug
 			nextSlug = pSlice[i+1].Stat.QuestionTitleSlug
 		}
