@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
 	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 	"github.com/realzhangm/leetcode_collector/collector/util"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"path"
 	"strings"
 	"text/template"
+	"time"
 )
 
 // 题目描述 README 中文模板
@@ -85,8 +87,8 @@ func (s SolutionReadMeFormatter) solutions() string {
 func (s SolutionReadMeFormatter) tagsCn() string {
 	res := ""
 	for _, tag := range s.question.TopicTags {
-		res += fmt.Sprintf("[%s](%s%s)",
-			tag.TranslatedName, leetcode_cli.UrlTag, tag.Slug) + "<br>"
+		res += fmt.Sprintf("- [%s](%s%s) \n",
+			tag.TranslatedName, leetcode_cli.UrlTag, tag.Slug)
 	}
 	return res
 }
@@ -104,8 +106,8 @@ func (s SolutionReadMeFormatter) similarQuestionsCn() string {
 	res := ""
 	for _, sq := range sqs {
 		if _, e := s.p.AcProblems[sq.TitleSlug]; e {
-			res += fmt.Sprintf("[%s](solutions/%s/README.md) %s",
-				sq.TranslatedTitle, sq.TitleSlug, sq.Difficulty) + "<br>"
+			res += fmt.Sprintf("- [%s](solutions/%s/README.md)  [%s] \n",
+				sq.TranslatedTitle, sq.TitleSlug, sq.Difficulty)
 		}
 	}
 	return res
@@ -134,6 +136,33 @@ func (s *SolutionReadMeFormatter) outPutSolutionReadme(slugDir string) {
 	}
 }
 
+func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *leetcode_cli.SubmissionDetail) {
+	lang := subDetail.Lang
+	dst := path.Join(slugDir, slug+findExt(lang))
+	buff := bufferpool.GetBuffer()
+	defer bufferpool.PutBuffer(buff)
+
+	buff.WriteString("// @Title: ")
+	buff.WriteString(subDetail.Question.Title)
+	buff.WriteString("\n")
+
+	buff.WriteString("// @Author: ")
+	buff.WriteString(p.UserName)
+	buff.WriteString("\n")
+
+	buff.WriteString("// @Date: ")
+	buff.WriteString(time.Unix(int64(subDetail.Timestamp), 0).Format(time.RFC3339))
+	buff.WriteString("\n")
+	buff.WriteString("// @URL: ")
+	buff.WriteString(leetcode_cli.UrlProblems + slug)
+	buff.WriteString("\n")
+	buff.WriteString("\n")
+	buff.WriteString("\n")
+
+	buff.WriteString(subDetail.Code)
+	ioutil.WriteFile(dst, buff.Bytes(), os.ModePerm)
+}
+
 func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 	mkdir(outputDir)
 
@@ -151,9 +180,9 @@ func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 		slugDir := path.Join(outputDir, slug)
 		mkdir(slugDir)
 
-		for lang, s := range subLangMap {
-			srcCodeFile := path.Join(slugDir, slug+findExt(lang))
-			ioutil.WriteFile(srcCodeFile, []byte(s.Code), os.ModePerm)
+		// 保存代码
+		for _, s := range subLangMap {
+			p.writeOneSourceCode(slugDir, slug, &s)
 		}
 
 		readMeF := SolutionReadMeFormatter{
