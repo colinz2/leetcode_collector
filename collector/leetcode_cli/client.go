@@ -16,8 +16,8 @@ import (
 
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
-	"github.com/realzhangm/leetcode_aid/collector/bufferpool"
-	"github.com/realzhangm/leetcode_aid/collector/util"
+	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
+	"github.com/realzhangm/leetcode_collector/collector/util"
 )
 
 const (

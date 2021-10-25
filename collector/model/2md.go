@@ -2,8 +2,8 @@ package model
 
 import (
 	"fmt"
-	"github.com/realzhangm/leetcode_aid/collector/bufferpool"
-	"github.com/realzhangm/leetcode_aid/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
+	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 	"os"
 	"sort"
 	"strconv"

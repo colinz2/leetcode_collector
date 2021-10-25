@@ -1,4 +1,4 @@
-module github.com/realzhangm/leetcode_aid
+module github.com/realzhangm/leetcode_collector
 
 go 1.16
 

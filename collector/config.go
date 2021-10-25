@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/howeyc/gopass"
-	"github.com/realzhangm/leetcode_aid/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 )
 
 type Config struct {

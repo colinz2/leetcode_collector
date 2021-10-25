@@ -3,8 +3,8 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/realzhangm/leetcode_aid/collector/leetcode_cli"
-	"github.com/realzhangm/leetcode_aid/collector/util"
+	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/collector/util"
 	"io/ioutil"
 	"os"
 	"path"
