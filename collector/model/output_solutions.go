@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -33,6 +34,10 @@ const SolutionReadme = `
 ## 相似题目
 
 {{similar_questions_cn}}
+
+## Links
+
+{{links}}
 `
 
 func findExt(lang string) string {
@@ -55,6 +60,8 @@ func mkdir(dir string) {
 
 type SolutionReadMeFormatter struct {
 	slug       string
+	preSlug    string
+	nextSlug   string
 	subLangMap map[string]leetcode_cli.SubmissionDetail
 	question   *leetcode_cli.Question
 	p          *PersonInfoNode
@@ -113,6 +120,17 @@ func (s SolutionReadMeFormatter) similarQuestionsCn() string {
 	return res
 }
 
+func (s SolutionReadMeFormatter) links() string {
+	res := ""
+	if len(s.preSlug) > 0 {
+		res += fmt.Sprintf("- [Prev](../%s/README.md) \n", s.preSlug)
+	}
+	if len(s.nextSlug) > 0 {
+		res += fmt.Sprintf("- [Next](../%s/README.md) \n", s.nextSlug)
+	}
+	return res
+}
+
 func (s *SolutionReadMeFormatter) outPutSolutionReadme(slugDir string) {
 	tmpl, err := template.New("all").Funcs(template.FuncMap{
 		"title_cn":             (*s).titleCn,
@@ -120,6 +138,7 @@ func (s *SolutionReadMeFormatter) outPutSolutionReadme(slugDir string) {
 		"solutions":            (*s).solutions,
 		"tags_cn":              (*s).tagsCn,
 		"similar_questions_cn": (*s).similarQuestionsCn,
+		"links":                (*s).links,
 	}).Parse(SolutionReadme)
 	if err != nil {
 		panic(err)
@@ -167,7 +186,7 @@ func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *lee
 func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 	mkdir(outputDir)
 
-	outputOne := func(slug string) {
+	outputOne := func(slug, preSlug, nextSlug string) {
 		question := p.GetProblemsDetailExist(slug)
 		if question == nil {
 			panic("slug problem " + "not exist")
@@ -190,16 +209,30 @@ func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 			subLangMap: subLangMap,
 			question:   question,
 			slug:       slug,
+			preSlug:    preSlug,
+			nextSlug:   nextSlug,
 			p:          p,
 		}
 		readMeF.outPutSolutionReadme(slugDir)
 	}
 
+	pSlice := ProblemStatusSlice{}
 	for slug, ps := range p.AcProblems {
 		if slug != ps.Stat.QuestionTitleSlug {
 			panic("slug not equal")
 		}
-		outputOne(slug)
+		pSlice = append(pSlice, ps)
+	}
+	sort.Sort(pSlice)
+
+	for i := range pSlice {
+		preSlug, nextSlug := "", ""
+		slug := pSlice[i].Stat.QuestionTitleSlug
+		if i > 0 && i < len(pSlice)-1 {
+			preSlug = pSlice[i-1].Stat.QuestionTitleSlug
+			nextSlug = pSlice[i+1].Stat.QuestionTitleSlug
+		}
+		outputOne(slug, preSlug, nextSlug)
 	}
 	return nil
 }
