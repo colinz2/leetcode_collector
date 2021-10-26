@@ -6,16 +6,18 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/howeyc/gopass"
+	"github.com/jinzhu/configor"
 	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 )
 
 type Config struct {
 	ltClientConf leetcode_cli.ClientConf
 	SolutionsDir string
-	OutputDir    string
+	OutputDir    string `default:"./output"`
 	initFlag     bool
 }
 
@@ -35,8 +37,20 @@ func init() {
 }
 
 func LoadConfig() {
-	config.SolutionsDir = "./output/solutions"
-	config.OutputDir = "./output"
+	// file not exist, no error return
+	err := configor.Load(&config, "config.toml")
+	if err != nil {
+		fmt.Println("---------------")
+		panic(err)
+	}
+
+	if config.OutputDir == "" {
+		config.OutputDir = "./output"
+	}
+
+	if config.SolutionsDir == "" {
+		config.SolutionsDir = path.Join(config.OutputDir, "solutions")
+	}
 
 	if loadPass() != nil {
 		var err error

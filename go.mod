@@ -9,6 +9,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0
 	github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef
+	github.com/jinzhu/configor v1.2.1
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/machinebox/graphql v0.2.2
 	github.com/matryer/is v1.4.0 // indirect
