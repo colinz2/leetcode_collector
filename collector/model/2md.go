@@ -2,14 +2,15 @@ package model
 
 import (
 	"fmt"
-	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
+	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 )
 
 const markdownTemplate = `
@@ -118,6 +119,14 @@ func (t *TableLineFormat) templateExe() string {
 	}
 	buffer.WriteString("\n")
 	return buffer.String()
+}
+
+type SubmissionDetailSlice []leetcode_cli.SubmissionDetail
+
+func (s SubmissionDetailSlice) Len() int      { return len(s) }
+func (s SubmissionDetailSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s SubmissionDetailSlice) Less(i, j int) bool {
+	return strings.Compare(s[i].Lang, s[i].Lang) < 0
 }
 
 type ProblemStatusSlice []leetcode_cli.ProblemStatus

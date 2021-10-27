@@ -3,9 +3,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
-	"github.com/realzhangm/leetcode_collector/collector/util"
 	"io/ioutil"
 	"os"
 	"path"
@@ -13,6 +10,10 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
+	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/collector/util"
 )
 
 // 题目描述 README 中文模板
@@ -79,7 +80,13 @@ func (s SolutionReadMeFormatter) contentCn() string {
 
 func (s SolutionReadMeFormatter) solutions() string {
 	sb := strings.Builder{}
-	for lang, sbd := range s.subLangMap {
+	subDetailSlice := SubmissionDetailSlice{}
+	for _, sbd := range s.subLangMap {
+		subDetailSlice = append(subDetailSlice, sbd)
+	}
+
+	for _, sbd := range subDetailSlice {
+		lang := sbd.Lang
 		sb.WriteString(fmt.Sprintf("### %s [🔗](%s%s) \n", lang, s.slug, findExt(lang)))
 		sb.WriteString("```" + lang)
 		sb.WriteString("\n")
