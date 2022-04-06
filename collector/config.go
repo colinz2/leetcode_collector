@@ -3,14 +3,15 @@ package collector
 import (
 	"bufio"
 	"fmt"
-	"github.com/pkg/errors"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
+)
 
+import (
 	"github.com/howeyc/gopass"
 	"github.com/jinzhu/configor"
+	"github.com/pkg/errors"
 	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 )
 
@@ -65,7 +66,7 @@ func LoadConfig() {
 }
 
 func loadPass() error {
-	buf, err := ioutil.ReadFile(".password")
+	buf, err := os.ReadFile(".password")
 	if err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func loadPass() error {
 
 func savePass() {
 	str := fmt.Sprintf("%s %s", config.ltClientConf.UserName, config.ltClientConf.PassWord)
-	err := ioutil.WriteFile(".password", []byte(str), os.ModePerm)
+	err := os.WriteFile(".password", []byte(str), os.ModePerm)
 	if err != nil {
 		panic(err)
 	}

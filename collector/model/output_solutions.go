@@ -3,14 +3,15 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"sort"
 	"strings"
 	"text/template"
 	"time"
+)
 
+import (
 	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
 	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 	"github.com/realzhangm/leetcode_collector/collector/util"
@@ -187,7 +188,7 @@ func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *lee
 
 	buff.WriteString(subDetail.Code)
 	buff.WriteString("\n")
-	ioutil.WriteFile(dst, buff.Bytes(), os.ModePerm)
+	os.WriteFile(dst, buff.Bytes(), os.ModePerm)
 }
 
 func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
@@ -201,7 +202,8 @@ func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 
 		subLangMap := p.GetAcSubmissions(slug)
 		if subLangMap == nil {
-			panic(fmt.Sprintf("slug %s subLangMap not exist", slug))
+			fmt.Println("slug ", slug, " subLangMap is nil, ID", question.QuestionID)
+			//panic(fmt.Sprintf("slug %s subLangMap not exist", slug))
 		}
 
 		slugDir := path.Join(outputDir, slug)

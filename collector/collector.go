@@ -4,16 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
-	"github.com/realzhangm/leetcode_collector/collector/model"
-	"github.com/realzhangm/leetcode_collector/collector/util"
-	"golang.org/x/sync/errgroup"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
+)
+
+import (
+	"github.com/pkg/errors"
+	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/collector/model"
+	"github.com/realzhangm/leetcode_collector/collector/util"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -96,6 +99,7 @@ func (c *Collector) fetchAllProblems() error {
 		return errors.Wrap(ErrCollector, err.Error())
 	}
 
+	// 所有的问题
 	err, allProblems := c.ltClit.GetAllProblems()
 	if err != nil {
 		return errors.Wrap(ErrCollector, err.Error())
@@ -119,6 +123,7 @@ func (c *Collector) fetchAllProblems() error {
 	}
 
 	// Get question detail
+	// 所有 AC 的详细
 	err = c.fetchAcProblemsDetail()
 	if err != nil {
 		return err
@@ -154,9 +159,9 @@ func (c *Collector) submissionForOneLang(sbl []leetcode_cli.Submission) map[stri
 
 func (c *Collector) fetchAllSubmissions() error {
 	for slug := range c.personInfo.AcProblems {
-		e, sbs := c.ltClit.QuerySubmissionsByQuestion(slug)
+		sbs, e := c.ltClit.QuerySubmissionsByQuestion(slug)
 		if e != nil {
-			fmt.Println(e)
+			fmt.Println("QuerySubmissionsByQuestion:", e)
 			return e
 		}
 
@@ -164,17 +169,21 @@ func (c *Collector) fetchAllSubmissions() error {
 		for _, sb := range langSubmissionMap {
 			id, e2 := strconv.ParseInt(sb.ID, 10, 64)
 			if e2 != nil {
-				fmt.Println(e2)
-				return e2
+				panic(e2)
 			}
+			// 这里判断是否需要更新提交
 			if !c.personInfo.SubmissionsNeedUpdate(slug, sb.Lang, sb.Timestamp) {
 				continue
 			}
 
+			// 获取提交的代码
 			if err := tryNTimes(3, func(i int) error {
-				e3, sbDetail := c.ltClit.QuerySubmissionDetail(id)
+				sbDetail, e3 := c.ltClit.QuerySubmissionDetail(id)
 				if e3 != nil {
-					fmt.Println(i, "error:", e3)
+					fmt.Printf("%+v \n", sbs)
+					fmt.Printf("%+v \n", sb)
+					fmt.Println(id, "QuerySubmissionDetail error:", e3)
+					// panic(e3)
 					return e3
 				}
 				titleSlug := sbDetail.SubmissionDetail.Question.TitleSlug
@@ -191,7 +200,7 @@ func (c *Collector) fetchAllSubmissions() error {
 }
 
 // 存在服务拒绝
-func (c *Collector) fetchAllSubmissions2() error {
+func (c *Collector) fetchAllSubmissionsXX() error {
 	g, ctx := errgroup.WithContext(context.TODO())
 
 	slugChan := make(chan string)
@@ -212,7 +221,7 @@ func (c *Collector) fetchAllSubmissions2() error {
 	g.Go(func() error {
 		defer close(submissionsChan)
 		for slug := range slugChan {
-			ee, sbs := c.ltClit.QuerySubmissionsByQuestion(slug)
+			sbs, ee := c.ltClit.QuerySubmissionsByQuestion(slug)
 			if ee != nil {
 				fmt.Println(ee)
 				return ee
@@ -244,7 +253,7 @@ func (c *Collector) fetchAllSubmissions2() error {
 					fmt.Println(ee)
 					return ee
 				}
-				ee, sbDetail := c.ltClit.QuerySubmissionDetail(id)
+				sbDetail, ee := c.ltClit.QuerySubmissionDetail(id)
 				if ee != nil {
 					fmt.Println(ee)
 					return ee
@@ -273,11 +282,13 @@ func (c *Collector) LoadInfo() error {
 }
 
 func (c *Collector) FetchFromLeetCode() error {
+	// 所有的AC
 	err := c.fetchAllProblems()
 	if err != nil {
 		return err
 	}
 
+	// 所有的AC的提交
 	err = c.fetchAllSubmissions()
 	if err != nil {
 		return c.dumpInfo()
@@ -303,9 +314,9 @@ func (c *Collector) loadInfo() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(len(c.personInfo.AcProblems),
-		len(c.personInfo.AcProblemsDetail),
-		len(c.personInfo.AcSubmissions))
+	fmt.Println("AC :", len(c.personInfo.AcProblems))
+	fmt.Println("AC detail :", len(c.personInfo.AcProblemsDetail))
+	fmt.Println("AC Submissions :", len(c.personInfo.AcSubmissions))
 	return nil
 }
 
@@ -334,7 +345,6 @@ func (c *Collector) ExtractOneMarkDown() error {
 	}
 
 	fmt.Println("len(c.personInfo.AcProblemsDetail)=", len(c.personInfo.AcProblemsDetail))
-
 	return nil
 }
 

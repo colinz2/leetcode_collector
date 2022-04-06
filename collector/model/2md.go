@@ -8,7 +8,9 @@ import (
 	"strings"
 	"text/template"
 	"time"
+)
 
+import (
 	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
 	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 )
@@ -169,7 +171,7 @@ func updateTime() string {
 	return time.Now().Format("2006年1月2日 15:04:05")
 }
 
-func (p *PersonInfoNode) Json2Md(outputDir string) error {
+func (p *PersonInfoNode) json2MD1(outputDir string) error {
 	tmpl, err := template.New("all").Funcs(template.FuncMap{
 		"Time":    updateTime,
 		"Summary": (*p).summaryTable,
@@ -187,6 +189,14 @@ func (p *PersonInfoNode) Json2Md(outputDir string) error {
 	err = tmpl.Execute(f, p)
 	if err != nil {
 		panic(err)
+	}
+	return nil
+}
+
+func (p *PersonInfoNode) Json2Md(outputDir string) error {
+	err := p.json2MD1(outputDir)
+	if err != nil {
+		return err
 	}
 	return nil
 }

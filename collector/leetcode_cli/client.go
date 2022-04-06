@@ -13,7 +13,9 @@ import (
 	"os"
 	"sync"
 	"time"
+)
 
+import (
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
 	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
@@ -177,8 +179,8 @@ func (c *Client) isLogin() bool {
 	return c.loginFlag
 }
 
-func (c *Client) setLoginFlag() {
-	c.loginFlag = true
+func (c *Client) setLoginFlag(isLogIn bool) {
+	c.loginFlag = isLogIn
 }
 
 type LogInParam struct {
@@ -194,6 +196,10 @@ func (l LogInParam) postFormBuffer() *bytes.Buffer {
 }
 
 func (c *Client) Login(ctx context.Context) error {
+	return c.login(ctx)
+}
+
+func (c *Client) login(ctx context.Context) error {
 	loginUrl := Url + LoginPath
 	logInParam := LogInParam{
 		Login:    c.conf.UserName,
@@ -221,7 +227,7 @@ func (c *Client) Login(ctx context.Context) error {
 		msg := fmt.Sprintf("http status not OK, %d", response.StatusCode)
 		return errors.Wrap(ErrorClientLogin, msg)
 	}
-	c.setLoginFlag()
+	c.setLoginFlag(true)
 	return nil
 }
 
@@ -324,13 +330,13 @@ func (c *Client) QueryQuestionDetail(questionSlug string) (error, *QuestionDetai
 }
 
 // QuerySubmissionsByQuestion get all the submission for each question
-func (c *Client) QuerySubmissionsByQuestion(questionSlug string) (error, *SubmissionsByQuestionResponse) {
+func (c *Client) QuerySubmissionsByQuestion(questionSlug string) (*SubmissionsByQuestionResponse, error) {
 	if len(questionSlug) == 0 {
-		return errors.Wrap(ErrorClientGraphQl, "questionSlug is zero length"), nil
+		return nil, errors.Wrap(ErrorClientGraphQl, "questionSlug is zero length")
 	}
 
 	if !c.isLogin() {
-		return errors.Wrap(ErrorClientGraphQl, "not login"), nil
+		return nil, errors.Wrap(ErrorClientGraphQl, "not login")
 	}
 
 	httpCli := c.getHttpClintFromPool()
@@ -351,28 +357,29 @@ func (c *Client) QuerySubmissionsByQuestion(questionSlug string) (error, *Submis
 	var responseData map[string]interface{}
 	err := graphqlCli.Run(context.TODO(), req, &responseData)
 	if err != nil {
-		return errors.Wrap(ErrorClientGraphQl, err.Error()), nil
+		return nil, errors.Wrap(ErrorClientGraphQl, err.Error())
 	}
-	saber := &SubmissionsByQuestionResponse{}
+
 	buff := bufferpool.GetBuffer()
 	defer bufferpool.PutBuffer(buff)
 	enc := json.NewEncoder(buff)
 	err = enc.Encode(responseData)
 	if err != nil {
-		return errors.Wrap(ErrorClientGraphQl, err.Error()), nil
+		return nil, errors.Wrap(ErrorClientGraphQl, err.Error())
 	}
 	dec := json.NewDecoder(buff)
+	saber := &SubmissionsByQuestionResponse{}
 	err = dec.Decode(saber)
 	if err != nil {
-		return errors.Wrap(ErrorClientGraphQl, err.Error()), nil
+		return nil, errors.Wrap(ErrorClientGraphQl, err.Error())
 	}
-	return nil, saber
+	return saber, nil
 }
 
 // QuerySubmissionDetail get very submssion detail
-func (c *Client) QuerySubmissionDetail(id int64) (error, *SubmissionDetailResponse) {
+func (c *Client) QuerySubmissionDetail(id int64) (*SubmissionDetailResponse, error) {
 	if !c.isLogin() {
-		return errors.Wrap(ErrorSubmissionDetail, "not login"), nil
+		return nil, errors.Wrap(ErrorSubmissionDetail, "not login")
 	}
 
 	// don't need to change http client ?
@@ -394,7 +401,7 @@ func (c *Client) QuerySubmissionDetail(id int64) (error, *SubmissionDetailRespon
 	var responseData map[string]interface{}
 	err := graphqlCli.Run(context.TODO(), req, &responseData)
 	if err != nil {
-		return errors.Wrap(ErrorSubmissionDetail, err.Error()), nil
+		return nil, errors.Wrap(ErrorSubmissionDetail, err.Error())
 	}
 
 	r := &SubmissionDetailResponse{}
@@ -403,16 +410,19 @@ func (c *Client) QuerySubmissionDetail(id int64) (error, *SubmissionDetailRespon
 	enc := json.NewEncoder(buff)
 	err = enc.Encode(responseData)
 	if err != nil {
-		return errors.Wrap(ErrorSubmissionDetail, err.Error()), nil
+		return nil, errors.Wrap(ErrorSubmissionDetail, err.Error())
 	}
 	dec := json.NewDecoder(buff)
 	err = dec.Decode(r)
 	if err != nil {
-		return errors.Wrap(ErrorSubmissionDetail, err.Error()), nil
+		return nil, errors.Wrap(ErrorSubmissionDetail, err.Error())
 	}
 
 	if r.SubmissionDetail == nil {
-		return errors.Wrap(ErrorSubmissionDetail, "body SubmissionDetail is null"), nil
+		fmt.Println("%%%%%%", buff.String())
+		c.setLoginFlag(false)
+		c.login(context.TODO())
+		return nil, errors.Wrap(ErrorSubmissionDetail, "body SubmissionDetail is null")
 	}
-	return nil, r
+	return r, nil
 }
