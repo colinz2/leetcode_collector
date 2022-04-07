@@ -373,5 +373,6 @@ func (c *Collector) OutputSolutionsCode() error {
 }
 
 func (c *Collector) OutputTagsMarkDown() error {
+	c.personInfo.WriteAllTags(c.conf.OutputDir)
 	return c.personInfo.OutputTags(c.tagsDir())
 }

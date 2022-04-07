@@ -11,6 +11,7 @@ import (
 
 // tags
 // tag名.md 文件
+//TODO 优化
 
 // 题目描述 README 中文模板
 const TagsMarkDown = `
@@ -69,6 +70,25 @@ func (t *TagFormatter) outPutTagMarkDown(tagsDir string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (p *PersonInfoNode) WriteAllTags(outputDir string) {
+	tableStr := `| # | 标签 | 页面 | 力扣链接 | 解答数目 |
+|:--:|:-----|:---------:|:----:|:----:|
+`
+	sb := strings.Builder{}
+	sb.WriteString(tableStr)
+	i := 1
+	for slug, tagLinks := range p.TagsMap {
+		tagCn := tagLinks[0].topicTag.TranslatedName
+		lkLink := fmt.Sprintf("[%s](%s%s)", slug, lccli.UrlTag, slug)
+		localLink := fmt.Sprintf("[🔗](tags/%s.md)", slug)
+		tmp := fmt.Sprintf("|%d|%s|%s|%d|%s|", i, tagCn, localLink, lkLink, len(tagLinks))
+		sb.WriteString(tmp)
+		i++
+	}
+	fileName := path.Join(outputDir, "tags_table.md")
+	os.WriteFile(fileName, []byte(sb.String()), os.ModePerm)
 }
 
 func (p *PersonInfoNode) OutputTags(outputDir string) error {
