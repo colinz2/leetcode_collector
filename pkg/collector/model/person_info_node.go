@@ -2,13 +2,10 @@ package model
 
 import (
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
 	"strconv"
 	"strings"
 	"sync"
-)
-
-import (
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 )
 
 type InfoNode struct {

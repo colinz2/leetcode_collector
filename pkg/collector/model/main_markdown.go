@@ -2,17 +2,14 @@ package model
 
 import (
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/pkg/bufferpool"
+	leetcode_cli2 "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
-)
-
-import (
-	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
 )
 
 const markdownTemplate = `
@@ -42,8 +39,8 @@ const TableLine1 = `|{frontend_id}|{title}{paid_only}{is_favor}|{solutions}|{ac_
 
 type TableLineFormat struct {
 	slug string
-	ps   *leetcode_cli.ProblemStatus
-	q    *leetcode_cli.Question
+	ps   *leetcode_cli2.ProblemStatus
+	q    *leetcode_cli2.Question
 }
 
 func (t TableLineFormat) frontendId() string {
@@ -61,7 +58,7 @@ func (t TableLineFormat) solutions() string {
 
 func (t TableLineFormat) title() string {
 	return fmt.Sprintf("[%s](%s%s)",
-		t.ps.Stat.QuestionTitle, leetcode_cli.UrlProblems, t.ps.Stat.QuestionTitleSlug)
+		t.ps.Stat.QuestionTitle, leetcode_cli2.UrlProblems, t.ps.Stat.QuestionTitleSlug)
 }
 
 func (t TableLineFormat) paidOnly() string {
@@ -93,7 +90,7 @@ func (t TableLineFormat) tags() string {
 	res := ""
 	for _, tag := range t.q.TopicTags {
 		res += fmt.Sprintf("[%s](%s%s)",
-			tag.TranslatedName, leetcode_cli.UrlTag, tag.Slug) + "<br>"
+			tag.TranslatedName, leetcode_cli2.UrlTag, tag.Slug) + "<br>"
 	}
 	return res
 }
@@ -123,7 +120,7 @@ func (t *TableLineFormat) templateExe() string {
 	return buffer.String()
 }
 
-type SubmissionDetailSlice []leetcode_cli.SubmissionDetail
+type SubmissionDetailSlice []leetcode_cli2.SubmissionDetail
 
 func (s SubmissionDetailSlice) Len() int      { return len(s) }
 func (s SubmissionDetailSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -131,7 +128,7 @@ func (s SubmissionDetailSlice) Less(i, j int) bool {
 	return strings.Compare(s[i].Lang, s[i].Lang) < 0
 }
 
-type ProblemStatusSlice []leetcode_cli.ProblemStatus
+type ProblemStatusSlice []leetcode_cli2.ProblemStatus
 
 func (s ProblemStatusSlice) Len() int      { return len(s) }
 func (s ProblemStatusSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gocolly/colly"
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
 	"log"
 	"net/http"
 )

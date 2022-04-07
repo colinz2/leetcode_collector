@@ -3,18 +3,15 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/pkg/bufferpool"
+	leetcode_cli2 "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/pkg/util"
 	"os"
 	"path"
 	"sort"
 	"strings"
 	"text/template"
 	"time"
-)
-
-import (
-	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
-	"github.com/realzhangm/leetcode_collector/collector/util"
 )
 
 // 题目描述 README 中文模板
@@ -68,15 +65,15 @@ type SolutionReadMeFormatter struct {
 	slug       string
 	preSlug    string
 	nextSlug   string
-	subLangMap map[string]leetcode_cli.SubmissionDetail
-	question   *leetcode_cli.Question
+	subLangMap map[string]leetcode_cli2.SubmissionDetail
+	question   *leetcode_cli2.Question
 	p          *PersonInfoNode
 }
 
 // 支持函数参数
 func (s SolutionReadMeFormatter) titleCn() string {
 	return fmt.Sprintf("[%s](%s%s)",
-		s.question.TranslatedTitle, leetcode_cli.UrlProblems, s.slug)
+		s.question.TranslatedTitle, leetcode_cli2.UrlProblems, s.slug)
 }
 
 func (s SolutionReadMeFormatter) contentCn() string {
@@ -107,7 +104,7 @@ func (s SolutionReadMeFormatter) tagsCn() string {
 	res := ""
 	for _, tag := range s.question.TopicTags {
 		res += fmt.Sprintf("- [%s](%s%s) \n",
-			tag.TranslatedName, leetcode_cli.UrlTag, tag.Slug)
+			tag.TranslatedName, leetcode_cli2.UrlTag, tag.Slug)
 	}
 	return res
 }
@@ -167,7 +164,7 @@ func (s *SolutionReadMeFormatter) outPutSolutionReadme(slugDir string) {
 	}
 }
 
-func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *leetcode_cli.SubmissionDetail) {
+func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *leetcode_cli2.SubmissionDetail) {
 	lang := subDetail.Lang
 	dst := path.Join(slugDir, slug+findExt(lang))
 	buff := bufferpool.GetBuffer()
@@ -185,7 +182,7 @@ func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *lee
 	buff.WriteString(time.Unix(int64(subDetail.Timestamp), 0).Format(time.RFC3339))
 	buff.WriteString("\n")
 	buff.WriteString("// @URL: ")
-	buff.WriteString(leetcode_cli.UrlProblems + slug)
+	buff.WriteString(leetcode_cli2.UrlProblems + slug)
 	buff.WriteString("\n")
 	buff.WriteString("\n")
 	buff.WriteString("\n")

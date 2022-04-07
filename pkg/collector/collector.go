@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	leetcode_cli2 "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/pkg/collector/model"
+	"github.com/realzhangm/leetcode_collector/pkg/util"
 	"os"
 	"path"
 	"strconv"
@@ -14,9 +17,6 @@ import (
 
 import (
 	"github.com/pkg/errors"
-	"github.com/realzhangm/leetcode_collector/collector/leetcode_cli"
-	"github.com/realzhangm/leetcode_collector/collector/model"
-	"github.com/realzhangm/leetcode_collector/collector/util"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -26,7 +26,7 @@ var (
 )
 
 type Collector struct {
-	ltClit *leetcode_cli.Client
+	ltClit *leetcode_cli2.Client
 	conf   Config
 
 	personInfo model.PersonInfoNode
@@ -34,14 +34,14 @@ type Collector struct {
 
 func NewCollector(c *Config) *Collector {
 	collector := &Collector{
-		ltClit: leetcode_cli.NewClient(&c.ltClientConf),
+		ltClit: leetcode_cli2.NewClient(&c.ltClientConf),
 		conf:   *c,
 		personInfo: model.PersonInfoNode{
 			Mutex:            sync.Mutex{},
 			InfoNode:         model.InfoNode{},
-			AcProblems:       make(map[string]leetcode_cli.ProblemStatus),
-			AcProblemsDetail: make(map[string]leetcode_cli.Question),
-			AcSubmissions:    make(map[string]map[string]leetcode_cli.SubmissionDetail),
+			AcProblems:       make(map[string]leetcode_cli2.ProblemStatus),
+			AcProblemsDetail: make(map[string]leetcode_cli2.Question),
+			AcSubmissions:    make(map[string]map[string]leetcode_cli2.SubmissionDetail),
 		},
 	}
 	return collector
@@ -69,7 +69,7 @@ func (c *Collector) fetchAcProblemsDetail() error {
 		return nil
 	})
 
-	tmpMap := make(map[string]*leetcode_cli.Question)
+	tmpMap := make(map[string]*leetcode_cli2.Question)
 	mu := new(sync.Mutex)
 	for i := 0; i < reqRoutineNum; i++ {
 		g.Go(func() error {
@@ -148,8 +148,8 @@ func tryNTimes(n int, f func(i int) error) error {
 }
 
 // 从sbl中选择
-func (c *Collector) submissionForOneLang(sbl []leetcode_cli.Submission) map[string]leetcode_cli.Submission {
-	langSubmissionMap := make(map[string]leetcode_cli.Submission)
+func (c *Collector) submissionForOneLang(sbl []leetcode_cli2.Submission) map[string]leetcode_cli2.Submission {
+	langSubmissionMap := make(map[string]leetcode_cli2.Submission)
 	for _, sb := range sbl {
 		v, e := langSubmissionMap[sb.Lang]
 		if !e || strings.Compare(v.Timestamp, sb.Timestamp) < 0 {
@@ -232,7 +232,7 @@ func (c *Collector) fetchAllSubmissionsXX() error {
 	g, ctx := errgroup.WithContext(context.TODO())
 
 	slugChan := make(chan string)
-	submissionsChan := make(chan *leetcode_cli.SubmissionsByQuestionResponse)
+	submissionsChan := make(chan *leetcode_cli2.SubmissionsByQuestionResponse)
 
 	g.Go(func() error {
 		defer close(slugChan)
@@ -265,7 +265,7 @@ func (c *Collector) fetchAllSubmissionsXX() error {
 
 	g.Go(func() error {
 		for sbs := range submissionsChan {
-			langSubmissionMap := make(map[string]leetcode_cli.Submission)
+			langSubmissionMap := make(map[string]leetcode_cli2.Submission)
 			for _, sb := range sbs.SubmissionList.Submissions {
 				v, e := langSubmissionMap[sb.Lang]
 				if !e || strings.Compare(v.Timestamp, sb.Timestamp) < 0 {
@@ -309,7 +309,7 @@ func (c *Collector) LoadInfo() error {
 	return nil
 }
 
-func (c *Collector) FetchFromLeetCode() error {
+func (c *Collector) FetchAllFromLeetCode() error {
 	// 所有的AC
 	if err := c.fetchAllProblems(); err != nil {
 		return err
@@ -366,24 +366,11 @@ func (c *Collector) dumpInfo() error {
 	return nil
 }
 
-func (c *Collector) ExtractOneMarkDown() error {
-	for slug, v := range c.personInfo.AcProblems {
-		fmt.Printf("slug=%s %v %s \n", slug, v.IsFavor, c.personInfo.AcProblemsDetail[slug].QuestionID)
-	}
-
-	for slug, v := range c.personInfo.AcProblemsDetail {
-		fmt.Printf("slugPD=%s %v \n", slug, v.QuestionID)
-	}
-
-	fmt.Println("len(c.personInfo.AcProblemsDetail)=", len(c.personInfo.AcProblemsDetail))
-	return nil
-}
-
-func (c *Collector) Json2MD() error {
+func (c *Collector) JsonToMarkDown() error {
 	mdPath := path.Join(c.conf.OutputDir, "README.md")
 	return c.personInfo.Json2Md(mdPath)
 }
 
-func (c *Collector) OutputSolutions() error {
+func (c *Collector) OutputSolutionsCode() error {
 	return c.personInfo.OutputSolutions(c.conf.SolutionsDir)
 }

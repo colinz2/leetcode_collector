@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/pkg/bufferpool"
+	"github.com/realzhangm/leetcode_collector/pkg/util"
 	"io"
 	"log"
 	"net"
@@ -18,8 +20,6 @@ import (
 import (
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
-	"github.com/realzhangm/leetcode_collector/collector/bufferpool"
-	"github.com/realzhangm/leetcode_collector/collector/util"
 )
 
 const (
