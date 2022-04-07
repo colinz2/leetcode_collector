@@ -70,6 +70,7 @@ func (c *Collector) fetchAcProblemsDetail() error {
 	})
 
 	tmpMap := make(map[string]*leetcode_cli.Question)
+	mu := new(sync.Mutex)
 	for i := 0; i < reqRoutineNum; i++ {
 		g.Go(func() error {
 			for slug := range slugChan {
@@ -77,7 +78,9 @@ func (c *Collector) fetchAcProblemsDetail() error {
 				if ee != nil {
 					return ee
 				}
+				mu.Lock()
 				tmpMap[slug] = &q.Question
+				mu.Unlock()
 			}
 			return nil
 		})

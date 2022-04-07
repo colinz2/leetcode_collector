@@ -170,13 +170,12 @@ func NewClient(conf *ClientConf) *Client {
 }
 
 func (c *Client) getHttpClintFromPool() *http.Client {
-	//return c.httpCliPool.Get().(*http.Client)
-	return c.httpCli
+	return c.httpCliPool.Get().(*http.Client)
 }
 
 func (c *Client) putHttpClintToPool(httpCli *http.Client) {
-	//httpCli.CloseIdleConnections()
-	//c.httpCliPool.Put(httpCli)
+	httpCli.CloseIdleConnections()
+	c.httpCliPool.Put(httpCli)
 }
 
 func (c *Client) isLogin() bool {

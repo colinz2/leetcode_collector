@@ -31,23 +31,22 @@ type PersonInfoNode struct {
 
 func (p *PersonInfoNode) SetAcProblemDetail(slug string, q *leetcode_cli.Question) {
 	p.Lock()
-	defer p.Unlock()
 	p.AcProblemsDetail[slug] = *q
+	p.Unlock()
 }
 
 func (p *PersonInfoNode) DeleteAcSetAcSubmission(slug string) {
 	p.Lock()
-	defer p.Unlock()
 	delete(p.AcSubmissions[slug], slug)
+	p.Unlock()
 }
 
 func (p *PersonInfoNode) ProblemsDetailExist(slug string) bool {
+	var exist bool
 	p.Lock()
-	defer p.Unlock()
-	if _, e := p.AcProblemsDetail[slug]; e {
-		return true
-	}
-	return false
+	_, exist = p.AcProblemsDetail[slug]
+	p.Unlock()
+	return exist
 }
 
 func (p *PersonInfoNode) SubmissionsNeedUpdate(slug string, lang string, timeStampNew string) bool {
