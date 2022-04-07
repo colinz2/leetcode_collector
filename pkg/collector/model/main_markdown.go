@@ -47,6 +47,7 @@ type TableLineFormat struct {
 }
 
 func (t TableLineFormat) frontendId() string {
+	// 真正的序号
 	return t.ps.Stat.FrontendQuestionID
 }
 
@@ -61,7 +62,7 @@ func (t TableLineFormat) solutions() string {
 
 func (t TableLineFormat) title() string {
 	return fmt.Sprintf("[%s](%s%s)",
-		t.ps.Stat.QuestionTitle, lccli.UrlProblems, t.ps.Stat.QuestionTitleSlug)
+		t.q.TranslatedTitle, lccli.UrlProblems, t.ps.Stat.QuestionTitleSlug)
 }
 
 func (t TableLineFormat) paidOnly() string {
