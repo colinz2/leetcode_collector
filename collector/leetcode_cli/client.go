@@ -128,7 +128,7 @@ func newGraphQlHttpClient() *http.Client {
 	return httpClient
 }
 
-func NewClient(conf *ClientConf) *Client {
+func newHttpClint() *http.Client {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{
@@ -139,18 +139,21 @@ func NewClient(conf *ClientConf) *Client {
 
 			ExpectContinueTimeout: 4 * time.Second,
 			ResponseHeaderTimeout: 3 * time.Second,
-			MaxIdleConns:          10,
+			MaxIdleConns:          60,
 			MaxConnsPerHost:       5,
 			MaxIdleConnsPerHost:   5,
-			IdleConnTimeout:       10,
+			IdleConnTimeout:       20,
 		},
 		// Prevent endless redirects
 		Timeout: 1 * time.Minute,
 	}
+	return httpClient
+}
 
+func NewClient(conf *ClientConf) *Client {
 	client := &Client{
 		conf:      *conf,
-		httpCli:   httpClient,
+		httpCli:   newHttpClint(),
 		cookieJar: NewJar(),
 		httpCliPool: &sync.Pool{
 			New: func() interface{} {
@@ -167,12 +170,13 @@ func NewClient(conf *ClientConf) *Client {
 }
 
 func (c *Client) getHttpClintFromPool() *http.Client {
-	return c.httpCliPool.Get().(*http.Client)
+	//return c.httpCliPool.Get().(*http.Client)
+	return c.httpCli
 }
 
 func (c *Client) putHttpClintToPool(httpCli *http.Client) {
-	httpCli.CloseIdleConnections()
-	c.httpCliPool.Put(httpCli)
+	//httpCli.CloseIdleConnections()
+	//c.httpCliPool.Put(httpCli)
 }
 
 func (c *Client) isLogin() bool {
@@ -181,6 +185,14 @@ func (c *Client) isLogin() bool {
 
 func (c *Client) setLoginFlag(isLogIn bool) {
 	c.loginFlag = isLogIn
+}
+
+func (c *Client) reLogin() error {
+	c.setLoginFlag(false)
+	c.httpCli.CloseIdleConnections()
+	c.httpCli = newHttpClint()
+	c.cookieJar = NewJar()
+	return c.login(context.TODO())
 }
 
 type LogInParam struct {
@@ -227,6 +239,7 @@ func (c *Client) login(ctx context.Context) error {
 		msg := fmt.Sprintf("http status not OK, %d", response.StatusCode)
 		return errors.Wrap(ErrorClientLogin, msg)
 	}
+	fmt.Println("Login OK!!!!!!!!!!!!!")
 	c.setLoginFlag(true)
 	return nil
 }
@@ -419,9 +432,9 @@ func (c *Client) QuerySubmissionDetail(id int64) (*SubmissionDetailResponse, err
 	}
 
 	if r.SubmissionDetail == nil {
-		fmt.Println("%%%%%%", buff.String())
-		c.setLoginFlag(false)
-		c.login(context.TODO())
+		fmt.Println("%%%%%%$$$$$$$$$$$$", buff.String())
+		time.Sleep(30 * time.Second)
+		c.reLogin()
 		return nil, errors.Wrap(ErrorSubmissionDetail, "body SubmissionDetail is null")
 	}
 	return r, nil

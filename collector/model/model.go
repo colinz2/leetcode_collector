@@ -62,7 +62,7 @@ func (p *PersonInfoNode) SubmissionsNeedUpdate(slug string, lang string, timeSta
 	}
 
 	oldTimeStamp := strconv.FormatInt(int64(m2[lang].Timestamp), 10)
-	fmt.Println(oldTimeStamp, timeStampNew)
+	fmt.Println("oldTimeStamp = ", oldTimeStamp, ", timeStampNew = ", timeStampNew)
 	if strings.Compare(oldTimeStamp, timeStampNew) < 0 {
 		return true
 	}

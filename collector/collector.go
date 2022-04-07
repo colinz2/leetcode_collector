@@ -320,6 +320,7 @@ func (c *Collector) loadInfo() error {
 	return nil
 }
 
+// 保存完整信息
 func (c *Collector) dumpInfo() error {
 	f, err := os.OpenFile(c.allInfoFilePath(), os.O_TRUNC|os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
@@ -332,6 +333,10 @@ func (c *Collector) dumpInfo() error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("After dumpInfo()")
+	fmt.Println("AC :", len(c.personInfo.AcProblems))
+	fmt.Println("AC detail :", len(c.personInfo.AcProblemsDetail))
+	fmt.Println("AC Submissions :", len(c.personInfo.AcSubmissions))
 	return nil
 }
 
