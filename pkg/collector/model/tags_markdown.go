@@ -30,10 +30,16 @@ type TagFormatter struct {
 }
 
 func NewTagFormatter(ts string, tl []TagsLink) *TagFormatter {
-	return &TagFormatter{
+	res := &TagFormatter{
 		tagSlug:  ts,
 		tagLinks: tl,
 	}
+	sort.Slice(res.tagLinks, func(i, j int) bool {
+		idi := res.tagLinks[i].problemStatus.Stat.QuestionID
+		idj := res.tagLinks[j].problemStatus.Stat.QuestionID
+		return idi < idj
+	})
+	return res
 }
 
 // 支持函数参数
@@ -122,7 +128,8 @@ func (p *PersonInfoNode) WriteAllTags(outputDir string) {
 	for _, tagLinks := range tagLinksSlice {
 		tagSlug := tagLinks[0].topicTag.Slug
 		tagCn := tagLinks[0].topicTag.TranslatedName
-		lkLink := fmt.Sprintf("[%s](%s%s)", tagSlug, lccli.UrlTag, tagSlug)
+		tagEn := tagLinks[0].topicTag.Name
+		lkLink := fmt.Sprintf("[%s](%s%s)", tagEn, lccli.UrlTag, tagSlug)
 		localLink := fmt.Sprintf("[🔗](tags/%s.md)", tagSlug)
 		tmp := fmt.Sprintf("|%d|%s|%s|%s|%d|", i, tagCn, localLink, lkLink, len(tagLinks))
 		sb.WriteString(tmp)

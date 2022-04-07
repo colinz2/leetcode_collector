@@ -35,6 +35,9 @@ const markdownTemplate = `
 <!--请保留下面这行信息，让更多用户了解到这个小爬虫，衷心感谢您的支持-->
 <p align="center">The source code is fetched using the tool <a href="https://github.com/realzhangm/leetcode_collector">leetcode_collector</a>.</p>
 
+<p align="center"> 查看 <a href="./TAGS.md">标签视角</a>.</p>
+
+
 | # | 题名 | 解答 | 通过率 | 难度 | 标签 |
 |:--:|:-----|:---------:|:----:|:----:|:----:|
 {{Summary}}
