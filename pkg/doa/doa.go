@@ -5,3 +5,9 @@ func MustOK(err error) {
 		panic(err)
 	}
 }
+
+func Assert(ok bool) {
+	if !ok {
+		panic("")
+	}
+}

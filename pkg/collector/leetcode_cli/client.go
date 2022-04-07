@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/pkg/doa"
 	"io"
 	"log"
 	"net"
@@ -338,6 +339,7 @@ func (c *Client) QueryQuestionDetail(questionSlug string) (error, *QuestionDetai
 	if err != nil {
 		return errors.Wrap(ErrorClientGraphQl, err.Error()), nil
 	}
+	doa.Assert(r != nil)
 	return nil, r
 }
 

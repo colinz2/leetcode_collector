@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/pkg/doa"
 	"os"
 	"path"
 	"strconv"
@@ -79,6 +80,9 @@ func (c *Collector) fetchAcProblemsDetail() error {
 				if ee != nil {
 					return ee
 				}
+
+				doa.Assert(len(q.Question.Content) > 0)
+
 				mu.Lock()
 				tmpMap[slug] = &q.Question
 				mu.Unlock()
@@ -170,6 +174,7 @@ func (c *Collector) fetchOneSubmissions(slug string) error {
 		return e
 	}
 
+	// 每种语言选择最后的 accepted 的提交
 	langSubmissionMap := c.submissionForOneLang(sbs.SubmissionList.Submissions)
 	for _, sb := range langSubmissionMap {
 		id, e2 := strconv.ParseInt(sb.ID, 10, 64)

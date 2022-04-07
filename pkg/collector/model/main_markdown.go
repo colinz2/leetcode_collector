@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"github.com/realzhangm/leetcode_collector/pkg/doa"
 	"os"
 	"sort"
 	"strconv"
@@ -158,6 +159,9 @@ func (p *PersonInfoNode) summaryTable() string {
 		if !e {
 			panic("not exist ?")
 		}
+
+		doa.Assert(len(pd.TranslatedTitle) > 0)
+
 		tlf := TableLineFormat{
 			slug: slug,
 			ps:   &ps,

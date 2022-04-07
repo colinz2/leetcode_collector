@@ -74,7 +74,10 @@ func (p *PersonInfoNode) DeleteAcSetAcSubmission(slug string) {
 func (p *PersonInfoNode) ProblemsDetailExist(slug string) bool {
 	var exist bool
 	p.Lock()
-	_, exist = p.AcProblemsDetail[slug]
+	detail, exist := p.AcProblemsDetail[slug]
+	if len(detail.Content) == 0 || len(detail.TranslatedTitle) == 0 {
+		exist = false
+	}
 	p.Unlock()
 	return exist
 }
