@@ -187,7 +187,7 @@ func (c *Client) setLoginFlag(isLogIn bool) {
 	c.loginFlag = isLogIn
 }
 
-func (c *Client) reLogin() error {
+func (c *Client) ReLogin() error {
 	c.setLoginFlag(false)
 	c.httpCli.CloseIdleConnections()
 	c.httpCli = newHttpClint()
@@ -358,7 +358,7 @@ func (c *Client) QuerySubmissionsByQuestion(questionSlug string) (*SubmissionsBy
 
 	graphqlCli := graphql.NewClient(c.graphqlURl(), graphql.WithHTTPClient(httpCli))
 	graphqlCli.Log = func(s string) {
-		//log.Println(s)
+		log.Println(s)
 	}
 
 	req := graphql.NewRequest(QuerySubmissionByQuestionSlug)
@@ -433,8 +433,6 @@ func (c *Client) QuerySubmissionDetail(id int64) (*SubmissionDetailResponse, err
 
 	if r.SubmissionDetail == nil {
 		fmt.Println("%%%%%%$$$$$$$$$$$$", buff.String())
-		time.Sleep(30 * time.Second)
-		c.reLogin()
 		return nil, errors.Wrap(ErrorSubmissionDetail, "body SubmissionDetail is null")
 	}
 	return r, nil

@@ -50,6 +50,10 @@ func findExt(lang string) string {
 		return ".rs"
 	case "golang":
 		return ".go"
+	case "javascript":
+		return ".js"
+	case "typescript":
+		return ".ts"
 	}
 	return "." + lang
 }

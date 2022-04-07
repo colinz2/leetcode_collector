@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 import (
@@ -157,43 +158,67 @@ func (c *Collector) submissionForOneLang(sbl []leetcode_cli.Submission) map[stri
 	return langSubmissionMap
 }
 
-func (c *Collector) fetchAllSubmissions() error {
-	for slug := range c.personInfo.AcProblems {
-		sbs, e := c.ltClit.QuerySubmissionsByQuestion(slug)
-		if e != nil {
-			fmt.Println("QuerySubmissionsByQuestion:", e)
-			return e
+// 一个题目的所有提交
+func (c *Collector) fetchOneSubmissions(slug string) error {
+	sbs, e := c.ltClit.QuerySubmissionsByQuestion(slug)
+	if e != nil {
+		fmt.Println("QuerySubmissionsByQuestion:", e)
+		return e
+	}
+
+	langSubmissionMap := c.submissionForOneLang(sbs.SubmissionList.Submissions)
+	for _, sb := range langSubmissionMap {
+		id, e2 := strconv.ParseInt(sb.ID, 10, 64)
+		if e2 != nil {
+			panic(e2)
+		}
+		// 这里判断是否需要更新提交
+		if !c.personInfo.SubmissionsNeedUpdate(slug, sb.Lang, sb.Timestamp) {
+			continue
 		}
 
-		langSubmissionMap := c.submissionForOneLang(sbs.SubmissionList.Submissions)
-		for _, sb := range langSubmissionMap {
-			id, e2 := strconv.ParseInt(sb.ID, 10, 64)
-			if e2 != nil {
-				panic(e2)
+		// 获取提交的代码
+		if err := tryNTimes(3, func(i int) error {
+			sbDetail, e3 := c.ltClit.QuerySubmissionDetail(id)
+			if e3 != nil {
+				fmt.Printf("%+v \n", sbs)
+				fmt.Printf("%+v \n", sb)
+				fmt.Println(id, "QuerySubmissionDetail error:", e3)
+				time.Sleep(time.Second * time.Duration(5))
+				return e3
 			}
-			// 这里判断是否需要更新提交
-			if !c.personInfo.SubmissionsNeedUpdate(slug, sb.Lang, sb.Timestamp) {
-				continue
-			}
+			titleSlug := sbDetail.SubmissionDetail.Question.TitleSlug
+			c.personInfo.SetAcSubmissions(titleSlug, sbDetail.SubmissionDetail)
+			return nil
+		}); err != nil {
+			// delete this titleSlug
+			c.personInfo.DeleteAcSetAcSubmission(slug)
+			return err
+		}
+	}
+	return nil
+}
 
-			// 获取提交的代码
-			if err := tryNTimes(3, func(i int) error {
-				sbDetail, e3 := c.ltClit.QuerySubmissionDetail(id)
-				if e3 != nil {
-					fmt.Printf("%+v \n", sbs)
-					fmt.Printf("%+v \n", sb)
-					fmt.Println(id, "QuerySubmissionDetail error:", e3)
-					// panic(e3)
-					return e3
-				}
-				titleSlug := sbDetail.SubmissionDetail.Question.TitleSlug
-				c.personInfo.SetAcSubmissions(titleSlug, sbDetail.SubmissionDetail)
-				return nil
-			}); err != nil {
-				// delete this titleSlug
-				c.personInfo.DeleteAcSetAcSubmission(slug)
-				return err
+func (c *Collector) fetchAllSubmissions() error {
+	cnt := 0
+	for slug := range c.personInfo.AcProblems {
+		cnt++
+		if cnt > 10 {
+			// 限速
+			time.Sleep(time.Millisecond * time.Duration(100))
+			cnt = 0
+		}
+
+		if err := tryNTimes(4, func(i int) error {
+			e := c.fetchOneSubmissions(slug)
+			if e != nil {
+				time.Sleep(time.Duration(15) * time.Second)
+				c.ltClit.ReLogin()
+				return e
 			}
+			return nil
+		}); err != nil {
+			panic(err)
 		}
 	}
 	return nil
@@ -283,14 +308,12 @@ func (c *Collector) LoadInfo() error {
 
 func (c *Collector) FetchFromLeetCode() error {
 	// 所有的AC
-	err := c.fetchAllProblems()
-	if err != nil {
+	if err := c.fetchAllProblems(); err != nil {
 		return err
 	}
 
 	// 所有的AC的提交
-	err = c.fetchAllSubmissions()
-	if err != nil {
+	if err := c.fetchAllSubmissions(); err != nil {
 		return c.dumpInfo()
 	}
 	return c.dumpInfo()
