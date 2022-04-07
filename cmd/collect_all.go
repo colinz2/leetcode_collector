@@ -13,6 +13,7 @@ func run() {
 	doa.MustOK(c.FetchAllFromLeetCode())
 	doa.MustOK(c.JsonToMarkDown())
 	doa.MustOK(c.OutputSolutionsCode())
+	doa.MustOK(c.OutputTagsMarkDown())
 }
 
 func main() {

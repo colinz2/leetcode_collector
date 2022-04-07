@@ -2,10 +2,12 @@ package model
 
 import (
 	"fmt"
-	"github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
 	"strconv"
 	"strings"
 	"sync"
+)
+import (
+	lccli "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
 )
 
 type InfoNode struct {
@@ -17,16 +19,47 @@ type InfoNode struct {
 	AcHard    int    `json:"ac_hard"`
 }
 
+type TagsLink struct {
+	topicTag      lccli.TopicTag
+	question      *lccli.Question
+	problemStatus *lccli.ProblemStatus
+}
+
 type PersonInfoNode struct {
 	sync.Mutex
 	InfoNode `json:"info_node"`
 	// key is question slug
-	AcProblems       map[string]leetcode_cli.ProblemStatus               `json:"ac_problems"`
-	AcProblemsDetail map[string]leetcode_cli.Question                    `json:"ac_problems_detail"`
-	AcSubmissions    map[string]map[string]leetcode_cli.SubmissionDetail `json:"ac_submissions"`
+	AcProblems       map[string]lccli.ProblemStatus               `json:"ac_problems"`
+	AcProblemsDetail map[string]lccli.Question                    `json:"ac_problems_detail"`
+	AcSubmissions    map[string]map[string]lccli.SubmissionDetail `json:"ac_submissions"`
+	// tags Map
+	TagsMap map[string][]TagsLink
 }
 
-func (p *PersonInfoNode) SetAcProblemDetail(slug string, q *leetcode_cli.Question) {
+func NewPersonInfoNode() *PersonInfoNode {
+	return &PersonInfoNode{
+		Mutex:            sync.Mutex{},
+		InfoNode:         InfoNode{},
+		AcProblems:       make(map[string]lccli.ProblemStatus),
+		AcProblemsDetail: make(map[string]lccli.Question),
+		AcSubmissions:    make(map[string]map[string]lccli.SubmissionDetail),
+		TagsMap:          make(map[string][]TagsLink),
+	}
+}
+
+// InsertTagsMap : 多个 tag 可以对应一个题目
+func (p *PersonInfoNode) InsertTagsMap(q *lccli.Question, ps *lccli.ProblemStatus) {
+	for i := range q.TopicTags {
+		tagsSlug := q.TopicTags[i].Slug
+		p.TagsMap[tagsSlug] = append(p.TagsMap[tagsSlug], TagsLink{
+			topicTag:      q.TopicTags[i],
+			question:      q,
+			problemStatus: ps,
+		})
+	}
+}
+
+func (p *PersonInfoNode) SetAcProblemDetail(slug string, q *lccli.Question) {
 	p.Lock()
 	p.AcProblemsDetail[slug] = *q
 	p.Unlock()
@@ -65,7 +98,7 @@ func (p *PersonInfoNode) SubmissionsNeedUpdate(slug string, lang string, timeSta
 	return false
 }
 
-func (p *PersonInfoNode) GetProblemsDetailExist(slug string) *leetcode_cli.Question {
+func (p *PersonInfoNode) GetProblemsDetailExist(slug string) *lccli.Question {
 	p.Lock()
 	defer p.Unlock()
 	if v, e := p.AcProblemsDetail[slug]; e {
@@ -74,7 +107,7 @@ func (p *PersonInfoNode) GetProblemsDetailExist(slug string) *leetcode_cli.Quest
 	return nil
 }
 
-func (p *PersonInfoNode) GetAcSubmissions(slug string) map[string]leetcode_cli.SubmissionDetail {
+func (p *PersonInfoNode) GetAcSubmissions(slug string) map[string]lccli.SubmissionDetail {
 	p.Lock()
 	defer p.Unlock()
 	m2, e1 := p.AcSubmissions[slug]
@@ -84,7 +117,7 @@ func (p *PersonInfoNode) GetAcSubmissions(slug string) map[string]leetcode_cli.S
 	return m2
 }
 
-func (p *PersonInfoNode) SetAcSubmissions(slug string, s *leetcode_cli.SubmissionDetail) {
+func (p *PersonInfoNode) SetAcSubmissions(slug string, s *lccli.SubmissionDetail) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -103,7 +136,7 @@ func (p *PersonInfoNode) SetAcSubmissions(slug string, s *leetcode_cli.Submissio
 		}
 		m2[lang] = *s
 	} else {
-		p.AcSubmissions[slug] = make(map[string]leetcode_cli.SubmissionDetail)
+		p.AcSubmissions[slug] = make(map[string]lccli.SubmissionDetail)
 		p.AcSubmissions[slug][lang] = *s
 	}
 }

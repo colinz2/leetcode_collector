@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	leetcode_cli2 "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
-	"github.com/realzhangm/leetcode_collector/pkg/collector/model"
-	"github.com/realzhangm/leetcode_collector/pkg/util"
 	"os"
 	"path"
 	"strconv"
@@ -17,6 +14,9 @@ import (
 
 import (
 	"github.com/pkg/errors"
+	lc_cli "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/pkg/collector/model"
+	"github.com/realzhangm/leetcode_collector/pkg/util"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -26,25 +26,26 @@ var (
 )
 
 type Collector struct {
-	ltClit *leetcode_cli2.Client
-	conf   Config
-
-	personInfo model.PersonInfoNode
+	conf       Config
+	ltClit     *lc_cli.Client
+	personInfo *model.PersonInfoNode
 }
 
 func NewCollector(c *Config) *Collector {
 	collector := &Collector{
-		ltClit: leetcode_cli2.NewClient(&c.ltClientConf),
-		conf:   *c,
-		personInfo: model.PersonInfoNode{
-			Mutex:            sync.Mutex{},
-			InfoNode:         model.InfoNode{},
-			AcProblems:       make(map[string]leetcode_cli2.ProblemStatus),
-			AcProblemsDetail: make(map[string]leetcode_cli2.Question),
-			AcSubmissions:    make(map[string]map[string]leetcode_cli2.SubmissionDetail),
-		},
+		ltClit:     lc_cli.NewClient(&c.ltClientConf),
+		conf:       *c,
+		personInfo: model.NewPersonInfoNode(),
 	}
 	return collector
+}
+
+func (c *Collector) allInfoFilePath() string {
+	return path.Join(c.conf.OutputDir, "all_info.json")
+}
+
+func (c *Collector) tagsDir() string {
+	return path.Join(c.conf.OutputDir, "tags")
 }
 
 func (c *Collector) fetchAcProblemsDetail() error {
@@ -69,7 +70,7 @@ func (c *Collector) fetchAcProblemsDetail() error {
 		return nil
 	})
 
-	tmpMap := make(map[string]*leetcode_cli2.Question)
+	tmpMap := make(map[string]*lc_cli.Question)
 	mu := new(sync.Mutex)
 	for i := 0; i < reqRoutineNum; i++ {
 		g.Go(func() error {
@@ -148,8 +149,8 @@ func tryNTimes(n int, f func(i int) error) error {
 }
 
 // 从sbl中选择
-func (c *Collector) submissionForOneLang(sbl []leetcode_cli2.Submission) map[string]leetcode_cli2.Submission {
-	langSubmissionMap := make(map[string]leetcode_cli2.Submission)
+func (c *Collector) submissionForOneLang(sbl []lc_cli.Submission) map[string]lc_cli.Submission {
+	langSubmissionMap := make(map[string]lc_cli.Submission)
 	for _, sb := range sbl {
 		v, e := langSubmissionMap[sb.Lang]
 		if !e || strings.Compare(v.Timestamp, sb.Timestamp) < 0 {
@@ -232,7 +233,7 @@ func (c *Collector) fetchAllSubmissionsXX() error {
 	g, ctx := errgroup.WithContext(context.TODO())
 
 	slugChan := make(chan string)
-	submissionsChan := make(chan *leetcode_cli2.SubmissionsByQuestionResponse)
+	submissionsChan := make(chan *lc_cli.SubmissionsByQuestionResponse)
 
 	g.Go(func() error {
 		defer close(slugChan)
@@ -265,7 +266,7 @@ func (c *Collector) fetchAllSubmissionsXX() error {
 
 	g.Go(func() error {
 		for sbs := range submissionsChan {
-			langSubmissionMap := make(map[string]leetcode_cli2.Submission)
+			langSubmissionMap := make(map[string]lc_cli.Submission)
 			for _, sb := range sbs.SubmissionList.Submissions {
 				v, e := langSubmissionMap[sb.Lang]
 				if !e || strings.Compare(v.Timestamp, sb.Timestamp) < 0 {
@@ -322,10 +323,6 @@ func (c *Collector) FetchAllFromLeetCode() error {
 	return c.dumpInfo()
 }
 
-func (c *Collector) allInfoFilePath() string {
-	return path.Join(c.conf.OutputDir, "all_info.json")
-}
-
 func (c *Collector) loadInfo() error {
 	if !util.PathExists(c.allInfoFilePath()) {
 		return nil
@@ -373,4 +370,8 @@ func (c *Collector) JsonToMarkDown() error {
 
 func (c *Collector) OutputSolutionsCode() error {
 	return c.personInfo.OutputSolutions(c.conf.SolutionsDir)
+}
+
+func (c *Collector) OutputTagsMarkDown() error {
+	return c.personInfo.OutputTags(c.tagsDir())
 }

@@ -3,15 +3,18 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/realzhangm/leetcode_collector/pkg/bufferpool"
-	leetcode_cli2 "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
-	"github.com/realzhangm/leetcode_collector/pkg/util"
 	"os"
 	"path"
 	"sort"
 	"strings"
 	"text/template"
 	"time"
+)
+
+import (
+	"github.com/realzhangm/leetcode_collector/pkg/bufferpool"
+	lccli "github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
+	"github.com/realzhangm/leetcode_collector/pkg/util"
 )
 
 // 题目描述 README 中文模板
@@ -65,15 +68,15 @@ type SolutionReadMeFormatter struct {
 	slug       string
 	preSlug    string
 	nextSlug   string
-	subLangMap map[string]leetcode_cli2.SubmissionDetail
-	question   *leetcode_cli2.Question
+	subLangMap map[string]lccli.SubmissionDetail
+	question   *lccli.Question
 	p          *PersonInfoNode
 }
 
 // 支持函数参数
 func (s SolutionReadMeFormatter) titleCn() string {
 	return fmt.Sprintf("[%s](%s%s)",
-		s.question.TranslatedTitle, leetcode_cli2.UrlProblems, s.slug)
+		s.question.TranslatedTitle, lccli.UrlProblems, s.slug)
 }
 
 func (s SolutionReadMeFormatter) contentCn() string {
@@ -103,8 +106,8 @@ func (s SolutionReadMeFormatter) solutions() string {
 func (s SolutionReadMeFormatter) tagsCn() string {
 	res := ""
 	for _, tag := range s.question.TopicTags {
-		res += fmt.Sprintf("- [%s](%s%s) \n",
-			tag.TranslatedName, leetcode_cli2.UrlTag, tag.Slug)
+		res += fmt.Sprintf("- [%s](../../tags/%s.md) \n",
+			tag.TranslatedName, tag.Slug)
 	}
 	return res
 }
@@ -164,7 +167,7 @@ func (s *SolutionReadMeFormatter) outPutSolutionReadme(slugDir string) {
 	}
 }
 
-func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *leetcode_cli2.SubmissionDetail) {
+func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *lccli.SubmissionDetail) {
 	lang := subDetail.Lang
 	dst := path.Join(slugDir, slug+findExt(lang))
 	buff := bufferpool.GetBuffer()
@@ -182,7 +185,7 @@ func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *lee
 	buff.WriteString(time.Unix(int64(subDetail.Timestamp), 0).Format(time.RFC3339))
 	buff.WriteString("\n")
 	buff.WriteString("// @URL: ")
-	buff.WriteString(leetcode_cli2.UrlProblems + slug)
+	buff.WriteString(lccli.UrlProblems + slug)
 	buff.WriteString("\n")
 	buff.WriteString("\n")
 	buff.WriteString("\n")
@@ -192,14 +195,17 @@ func (p *PersonInfoNode) writeOneSourceCode(slugDir, slug string, subDetail *lee
 	os.WriteFile(dst, buff.Bytes(), os.ModePerm)
 }
 
+// OutputSolutions : MarkDown + Code
+// insert tags map
 func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 	mkdir(outputDir)
 
-	outputOne := func(slug, preSlug, nextSlug string) {
+	outputOne := func(slug, preSlug, nextSlug string, pss *lccli.ProblemStatus) {
 		question := p.GetProblemsDetailExist(slug)
 		if question == nil {
 			panic("slug problem " + "not exist")
 		}
+		p.InsertTagsMap(question, pss)
 
 		subLangMap := p.GetAcSubmissions(slug)
 		if subLangMap == nil {
@@ -246,7 +252,7 @@ func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 			preSlug = pSlice[i-1].Stat.QuestionTitleSlug
 			nextSlug = pSlice[i+1].Stat.QuestionTitleSlug
 		}
-		outputOne(slug, preSlug, nextSlug)
+		outputOne(slug, preSlug, nextSlug, &pSlice[i])
 	}
 	return nil
 }

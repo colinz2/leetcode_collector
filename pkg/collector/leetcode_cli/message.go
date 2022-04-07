@@ -43,18 +43,20 @@ type AllProblemsResponse struct {
 	CategorySlug    string          `json:"category_slug"`
 }
 
+type TopicTag struct {
+	Name           string `json:"name"`
+	Slug           string `json:"slug"`
+	TranslatedName string `json:"translatedName"`
+}
+
 type Question struct {
-	Content          string   `json:"content"`
-	Hints            []string `json:"hints"`
-	QuestionID       string   `json:"questionId"`
-	SimilarQuestions string   `json:"similarQuestions"`
-	TopicTags        []struct {
-		Name           string `json:"name"`
-		Slug           string `json:"slug"`
-		TranslatedName string `json:"translatedName"`
-	} `json:"topicTags"`
-	TranslatedContent string `json:"translatedContent"`
-	TranslatedTitle   string `json:"translatedTitle"`
+	Content           string     `json:"content"`
+	Hints             []string   `json:"hints"`
+	QuestionID        string     `json:"questionId"`
+	SimilarQuestions  string     `json:"similarQuestions"`
+	TopicTags         []TopicTag `json:"topicTags"`
+	TranslatedContent string     `json:"translatedContent"`
+	TranslatedTitle   string     `json:"translatedTitle"`
 }
 
 type QuestionDetailResponse struct {

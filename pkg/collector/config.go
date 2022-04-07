@@ -3,7 +3,6 @@ package collector
 import (
 	"bufio"
 	"fmt"
-	"github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
 	"os"
 	"path"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/howeyc/gopass"
 	"github.com/jinzhu/configor"
 	"github.com/pkg/errors"
+	"github.com/realzhangm/leetcode_collector/pkg/collector/leetcode_cli"
 )
 
 type Config struct {
