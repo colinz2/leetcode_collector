@@ -89,7 +89,7 @@ func (p *PersonInfoNode) WriteAllTags(outputDir string) {
 		sb.WriteString("\n")
 		i++
 	}
-	fileName := path.Join(outputDir, "tags_table.md")
+	fileName := path.Join(outputDir, "TAGS.md")
 	os.WriteFile(fileName, []byte(sb.String()), os.ModePerm)
 }
 
