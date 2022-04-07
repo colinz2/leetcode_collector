@@ -73,7 +73,8 @@ func (t *TagFormatter) outPutTagMarkDown(tagsDir string) {
 }
 
 func (p *PersonInfoNode) WriteAllTags(outputDir string) {
-	tableStr := `| # | 标签 | 页面 | 力扣链接 | 解答数目 |
+	tableStr := `# 标签表
+| # | 标签 | 页面 | 力扣链接 | 解答数目 |
 |:--:|:-----|:---------:|:----:|:----:|
 `
 	sb := strings.Builder{}
@@ -83,8 +84,9 @@ func (p *PersonInfoNode) WriteAllTags(outputDir string) {
 		tagCn := tagLinks[0].topicTag.TranslatedName
 		lkLink := fmt.Sprintf("[%s](%s%s)", slug, lccli.UrlTag, slug)
 		localLink := fmt.Sprintf("[🔗](tags/%s.md)", slug)
-		tmp := fmt.Sprintf("|%d|%s|%s|%d|%s|", i, tagCn, localLink, lkLink, len(tagLinks))
+		tmp := fmt.Sprintf("|%d|%s|%s|%s|%d|", i, tagCn, localLink, lkLink, len(tagLinks))
 		sb.WriteString(tmp)
+		sb.WriteString("\n")
 		i++
 	}
 	fileName := path.Join(outputDir, "tags_table.md")
