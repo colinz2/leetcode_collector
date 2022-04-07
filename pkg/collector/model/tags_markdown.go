@@ -14,7 +14,7 @@ import (
 
 // tags
 // tag名.md 文件
-//TODO 优化
+// TODO 优化
 
 // 题目描述 README 中文模板
 const TagsMarkDown = `
@@ -119,10 +119,17 @@ func (p *PersonInfoNode) WriteAllTags(outputDir string) {
 
 	tagLinksSlice := make([][]TagsLink, 0, len(p.TagsMap))
 	for _, tagLink := range p.TagsMap {
+		sort.Slice(tagLink, func(i, j int) bool {
+			return strings.Compare(tagLink[i].question.QuestionID, tagLink[j].question.QuestionID) < 0
+		})
 		tagLinksSlice = append(tagLinksSlice, tagLink)
 	}
 	sort.Slice(tagLinksSlice, func(i, j int) bool {
-		return len(tagLinksSlice[i]) > len(tagLinksSlice[j])
+		cmp := len(tagLinksSlice[i]) - len(tagLinksSlice[j])
+		if cmp == 0 {
+			return strings.Compare(tagLinksSlice[i][0].topicTag.Slug, tagLinksSlice[j][0].topicTag.Slug) < 0
+		}
+		return cmp > 0
 	})
 
 	for _, tagLinks := range tagLinksSlice {

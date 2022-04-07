@@ -89,6 +89,7 @@ func (s SolutionReadMeFormatter) solutions() string {
 	for _, sbd := range s.subLangMap {
 		subDetailSlice = append(subDetailSlice, sbd)
 	}
+	sort.Sort(subDetailSlice)
 
 	for _, sbd := range subDetailSlice {
 		lang := sbd.Lang
@@ -216,7 +217,6 @@ func (p *PersonInfoNode) OutputSolutions(outputDir string) error {
 		slugDir := path.Join(outputDir, slug)
 		mkdir(slugDir)
 
-		// 保存代码
 		for _, s := range subLangMap {
 			p.writeOneSourceCode(slugDir, slug, &s)
 		}

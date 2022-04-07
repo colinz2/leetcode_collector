@@ -33,7 +33,7 @@ const markdownTemplate = `
     <br>
 </p>
 <!--请保留下面这行信息，让更多用户了解到这个小爬虫，衷心感谢您的支持-->
-<p align="center">The source code is fetched using the tool <a href="https://github.com/realzhangm/leetcode_collector">leetcode_collector</a>.</p>
+<p align="center"> 生成 By <a href="https://github.com/realzhangm/leetcode_collector">leetcode_collector</a>.</p>
 
 <p align="center"> 查看 <a href="./TAGS.md">标签视角</a>.</p>
 
@@ -133,7 +133,7 @@ type SubmissionDetailSlice []lccli.SubmissionDetail
 func (s SubmissionDetailSlice) Len() int      { return len(s) }
 func (s SubmissionDetailSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s SubmissionDetailSlice) Less(i, j int) bool {
-	return strings.Compare(s[i].Lang, s[i].Lang) < 0
+	return strings.Compare(s[i].Lang, s[j].Lang) < 0
 }
 
 type ProblemStatusSlice []lccli.ProblemStatus
